@@ -39,8 +39,41 @@ Summarizes a dataset as a matrix where each row corresponds to a feature and eac
 - Histogram
 - Empirical CDF
 
+All these measures work well for capturing marginal distributions but not for capturing correlations and higher order relations between dimensions.
+
 ### 2. Moment Extraction Network
+
+Capture high order relations between features. 
+
+Conv + BN + activation + mean-pooling --> d x t2 (t2 are output channels of the convolution)
 
 ### 3. Neural Embedding Network
 
+Capture non-linear relationships between features. 
 
+Concat X and Y --> conv + BN + residual block (conv + BN + activation + conv + BN + skip connections) --> divide into X and Y --> mean-pooling for each X and Y --> d x t3
+
+## Prediction Network
+
+Combines statistical feature maps from the statistical measures, moment extraction network, and neurla embedding network to predict the probabilities of each feature belonging to the corrupted set C.
+
+Combination (normalized squared difference) of statistical feature maps into a single joint map (t x d) --> BN --> residual block --> conv --> sigmoid --> P_hat --> Binarization --> C_hat
+
+**Loss function**: binary corss-entropy between predicted probabilities and the ground truth corrupted feature set + lambda*auxiliary function (applied to the predicted statistical functional maps)
+
+**Properties**:
+
+1. Sample-wise invariance
+    - Shapes of maps are independent of sample size (thanks to mean pooling operations)
+    - non-linear statistical functionals are computed sorting the dataset from smallest to largest, making them invariant to sample order
+2. Feature-wise equivariance
+    - Each of the statistical maps are computed using the marginal distributions
+    - Each time a convolution is to be applied, the feature ordering is randomly shuffled so that the model is not sensitive to feature order
+3. Locality (why do we want it? --> Sometimes neural networks when they see a change in a given feature they spread the signal everywhere, but we don't want that since we are analyzing feature shifts)
+    - statistical measures are computed using marginals
+    - addition of residual blocks in the nerual embedding network (you may add interactions with other features but you don't forget which feature you are)
+    - adding auxiliary function (mixing unrelated features increases loss, the network is penalized for spreading the signal everywhere)
+
+
+# FSL-Net vs DataFix
+FSL-Net encodes each dataset into per-feature statistical descriptors (simple stats, moments, neural embeddings), then feeds the pairwise descriptor differences through a prediction network to output per-feature shift probabilities in a single forward pass. DataFix repeatedly trains a random forest to distinguish reference vs query, removes the most important features, and stops when a divergence criterion (with knee detection) suggests the shifted feature set has been identified. FSL-Net is better because it is trained once and then applied zero-shot, whereas DataFix must retrain multiple forests per dataset. It also scales much better to large sample sizes and high-dimensional data, while DataFix becomes slow and unstable in such regimes. Empirically, FSL-Net achieves higher localization accuracy and robustness across a wide range of shift types.

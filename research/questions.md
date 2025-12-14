@@ -1,1 +1,2 @@
 - In the Statistical Measures of the Statistical Descriptor Network, why these measures? Have you tried with other statistics? Does it make a huge difference?
+- Why wasn't FSL-Net implemented before, what key discovery or thought did you make to be able to create it?
