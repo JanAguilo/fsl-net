@@ -1,0 +1,1 @@
+- In the Statistical Measures of the Statistical Descriptor Network, why these measures? Have you tried with other statistics? Does it make a huge difference?
