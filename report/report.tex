@@ -4,7 +4,13 @@
 \usepackage{float} 
 \usepackage[labelfont=it]{caption} % italicize figure label
 \usepackage{multirow}
+
+\title{\textbf{FSL-Net for Feature Importance}}
+\author{\textbf{Jan Aguil\'o Plana}}
+\date{17/12/2025}
+
 \begin{document}
+\maketitle
 
 \section{Pre-trained FSL-Net Inference and Qualitative Analysis}
 In the first phase, we evaluate the behavior of the pre-trained Feature Shift Localization Network (FSL-Net) through inference-only experiments. FSL-Net is designed to detect feature-level distributional shifts between a clean reference dataset and a potentially shifted query dataset, without requiring labels or fine-tuning. We apply the model to the MNIST dataset by treating each pixel as an individual feature. Specifically, we construct a reference set composed of 1,000 images of digit 3 and a query set composed of 1,000 images of digit 8, with each image flattened into a 784-dimensional feature vector. The pre-trained FSL-Net model is then used to estimate, for each pixel, an independent probability of being distributionally shifted between the two datasets.
@@ -19,7 +25,7 @@ Figure~\ref{fig:mnist_inference} shows the resulting shift probability map produ
 \end{figure}
 
 
-\section{Feature Importance via FSL-Net}
+\section{Feature Importance via FSL-Net Pre-trained}
 
 We study whether feature-level distributional shifts can be exploited as a proxy for feature importance in supervised digit classification. We consider the MNIST dataset, where each image is represented as a 784-dimensional vector of normalized pixel intensities, and use three standard classifiers: Logistic Regression, a Multilayer Perceptron (MLP), and XGBoost.
 
@@ -72,5 +78,60 @@ Table~\ref{tab:phase1_results} reports the classification performance for each f
 \caption{Phase 1 results: classification performance using feature selection (percentiles) and weighting based on FSL-Net distributional shifts.}
 \label{tab:phase1_results}
 \end{table}
+
+
+\section{Feature Importance via FSL-Net Fine-Tuned}
+
+In this phase, we investigate whether FSL-Net can be fine-tuned to encode a supervised notion of feature importance derived from downstream classifiers. Rather than relying solely on unsupervised distributional shifts, the goal is to align the output of FSL-Net with model-specific discriminative relevance.
+
+For each baseline classifier (Logistic Regression, MLP, and XGBoost), a global feature-importance vector of dimension 784 is computed from the trained model parameters using standard model-specific heuristics. These vectors serve as pseudo-supervised targets, acknowledging that no ground-truth feature importance annotations are available for MNIST.
+
+Starting from the same pre-trained FSL-Net backbone, three separate fine-tuned models are obtained, one per classifier. Fine-tuning is performed by freezing the majority of the network parameters and optimizing the final layers so that, given a pair of datasets, the predicted shift vector matches the corresponding classifier-derived importance vector. As in Phase 1, a one-vs-all strategy is used to generate meaningful distributional contrasts: for each digit class, the reference set consists of samples from that class, while the query set contains all remaining samples. The same global importance target is used across all one-vs-all pairs.
+
+After fine-tuning, each FSL-Net variant is used to recompute a global importance vector by aggregating its outputs across the ten one-vs-all comparisons. The resulting vectors are normalized and evaluated using the same feature selection and feature weighting strategies as in Phase 1. For each configuration, the classifiers are retrained from scratch using identical splits and hyperparameters, and performance is measured using balanced accuracy and macro-averaged ROC-AUC. This allows a direct comparison between unsupervised shift-based importance and supervised-aligned importance learned by FSL-Net.
+
+\subsection{Results}
+
+Table~\ref{tab:phase2_results} reports the classification performance obtained when feature selection and weighting are driven by the fine-tuned variants of FSL-Net, including the baseline performance without feature selection. Overall, supervised alignment does not improve downstream performance compared to the frozen model. Logistic Regression continues to exhibit severe degradation under feature selection and weighting, with balanced accuracy remaining substantially below the baseline across all configurations. The MLP shows gradual recovery as more features are retained, but consistently underperforms its baseline, particularly under aggressive feature selection. XGBoost remains the most robust model, preserving near-baseline performance even when retaining a small subset of features, although no systematic gains over the frozen FSL-Net are observed. These results indicate that, in the MNIST setting, unsupervised shift-based importance captures discriminative structure more effectively than supervised alignment.
+
+\begin{table}[h]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{l c l c c}
+\hline
+\textbf{Scenario} & \textbf{\# Features} & \textbf{Model} & \textbf{Balanced Acc.} & \textbf{ROC-AUC} \\
+\hline
+
+\multirow{3}{*}{Baseline} & \multirow{3}{*}{784} & Logistic Regression & 0.904687 & 0.987975 \\
+                          &                      & MLP                 & 0.974449 & 0.999398 \\
+                          &                      & XGBoost             & 0.975461 & 0.999578 \\
+\hline
+\multirow{3}{*}{Top 20\%} & \multirow{3}{*}{157} & Logistic Regression & 0.668843 & 0.946395 \\
+                          &                      & MLP                 & 0.755506 & 0.962687 \\
+                          &                      & XGBoost             & 0.936323 & 0.997223 \\
+\hline
+\multirow{3}{*}{Top 40\%} & \multirow{3}{*}{314} & Logistic Regression & 0.695547 & 0.959115 \\
+                          &                      & MLP                 & 0.853422 & 0.983719 \\
+                          &                      & XGBoost             & 0.958289 & 0.998945 \\
+\hline
+\multirow{3}{*}{Top 60\%} & \multirow{3}{*}{470} & Logistic Regression & 0.708360 & 0.961006 \\
+                          &                      & MLP                 & 0.888425 & 0.989223 \\
+                          &                      & XGBoost             & 0.967992 & 0.999367 \\
+\hline
+\multirow{3}{*}{Top 80\%} & \multirow{3}{*}{627} & Logistic Regression & 0.708342 & 0.961175 \\
+                          &                      & MLP                 & 0.916109 & 0.993167 \\
+                          &                      & XGBoost             & 0.973047 & 0.999484 \\
+\hline
+\multirow{3}{*}{Weighted} & \multirow{3}{*}{784} & Logistic Regression & 0.688010 & 0.951639 \\
+                          &                      & MLP                 & 0.903615 & 0.991263 \\
+                          &                      & XGBoost             & 0.975461 & 0.999578 \\
+\hline
+\end{tabular}
+\caption{Phase 2 results: classification performance using feature selection and weighting based on fine-tuned FSL-Net importance, including baseline performance without feature selection.}
+\label{tab:phase2_results}
+\end{table}
+
+
 
 \end{document}
