@@ -1,7 +1,7 @@
 ## What is a feature shift?
 - A feature shift occurs when a given feature behaves differently in two different datasets. For example, we could have the feature blood pressure from two different hospital datasets, where hospital A could have calculated this data with a calibrated device while hospital's B device might be old. So it could happen that the mean is higher in Hospital B and the variance is larger. Here, a feature shift happens.
 
-- Combining structured data from multiple sources can leat to mismatching and biased features, due to incorrect data collection procedures, human entry errors, faulty standardization, or erroneous data processing.
+- Combining structured data from multiple sources can lead to mismatching and biased features, due to incorrect data collection procedures, human entry errors, faulty standardization, or erroneous data processing.
 
 ## Feature Shift Localization (FSL)
 - Feature shift localization is the task of enumerating which features of multi-dimensional datasets are originating the distribution shift between two or more data sources
@@ -9,7 +9,7 @@
 - Equivariance to feature order (features are stored in a vector x1,...,xw. The output probability for each feature should not be affected by the order. For instance, in the MNIST dataset, x1 corresponds to the top left pixel because someone decided so. However, if we change the ordering and set x1 to the bottom right pixel the image still would be the same and the feature ordering should not affect probabilities. Since neural networks are sensitive to feature order, FSL-net give an output for each feature.)
 
 ### Related work
-- AlthoughDataFix performs well in many cases, it struggles with detecting challenging feature shifts and scales poorly with high-dimensional and large datasets.
+- Although **DataFix** performs well in many cases, it struggles with detecting challenging feature shifts and scales poorly with high-dimensional and large datasets.
 - Unlike model-centric approaches, which prioritize refining models while working with a fixed dataset, DCAI (Data-centric AI) emphasizes improving datasets through systematic and iterative processes.
 
 ## Problem definition
@@ -55,7 +55,7 @@ Concat X and Y --> conv + BN + residual block (conv + BN + activation + conv + B
 
 ## Prediction Network
 
-Combines statistical feature maps from the statistical measures, moment extraction network, and neurla embedding network to predict the probabilities of each feature belonging to the corrupted set C.
+Combines statistical feature maps from the statistical measures, moment extraction network, and neural embedding network to predict the probabilities of each feature belonging to the corrupted set C.
 
 Combination (normalized squared difference) of statistical feature maps into a single joint map (t x d) --> BN --> residual block --> conv --> sigmoid --> P_hat --> Binarization --> C_hat
 
